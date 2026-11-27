@@ -4,7 +4,7 @@
 //   posts/AAAA-MM-DD-nome/
 //     legenda.md         -> texto puro da legenda (obrigatório)
 //     post.json          -> opcional: { "hora": "09:00", "pausado": true, "tipo": "..." }
-//     slides/*.jpg       -> carrossel (2 a 10 imagens, em ordem alfabética)
+//     slides/*.jpg       -> carrossel (2 a 20 imagens, em ordem alfabética)
 //     arte.jpg           -> estático
 //     *.mp4              -> reel (um vídeo só)
 //     capa.jpg           -> opcional: capa do reel
@@ -78,8 +78,8 @@ export function lerPost(id) {
   let midias = [];
   if (tipo === 'carrossel') {
     midias = slides;
-    if (slides.length < 2 || slides.length > 10)
-      erros.push(`carrossel com ${slides.length} slides em JPEG (precisa de 2 a 10; rode npm run preparar)`);
+    if (slides.length < 2 || slides.length > 20)
+      erros.push(`carrossel com ${slides.length} slides em JPEG (precisa de 2 a 20; rode npm run preparar)`);
   } else if (tipo === 'reel') {
     if (videos.length !== 1) erros.push(`reel precisa de exatamente 1 .mp4 (achei ${videos.length})`);
     midias = videos.slice(0, 1);

@@ -5,6 +5,8 @@
 //   node scripts/publicar.mjs --verificar  -> só confere todos os posts (sem chamar a API)
 //   node scripts/publicar.mjs --simular    -> mostra o que publicaria agora, sem publicar
 //   node scripts/publicar.mjs --post 2027-01-05-carrossel  -> publica esse post já (ignora horário)
+//   node scripts/publicar.mjs --validar [--post X]  -> manda as mídias pra Meta e espera ela aprovar,
+//                                         mas NÃO publica (testa de verdade sem postar nada)
 //
 // Variáveis de ambiente (no GitHub ficam em Settings > Secrets and variables > Actions):
 //   IG_ACCESS_TOKEN  (secret)   token de acesso (EAA..., Instagram API com login do Facebook)
@@ -20,6 +22,7 @@ import { listarPosts, lerPost, RAIZ } from './posts.mjs';
 const args = process.argv.slice(2);
 const MODO_VERIFICAR = args.includes('--verificar');
 const MODO_SIMULAR = args.includes('--simular');
+const MODO_VALIDAR = args.includes('--validar');
 const POST_FORCADO = args.includes('--post') ? args[args.indexOf('--post') + 1] : null;
 
 // Só publica posts atrasados até este limite (evita soltar post velho se o robô ficar parado dias)
@@ -162,6 +165,8 @@ async function publicar(post, igUserId) {
     throw new Error(`tipo desconhecido: ${post.tipo}`);
   }
 
+  if (MODO_VALIDAR) return { validado: true };
+
   const { id: mediaId } = await graph('POST', `/${igUserId}/media_publish`, { creation_id: containerId });
   let permalink = '';
   try {
@@ -175,6 +180,8 @@ const agora = new Date();
 let candidatos;
 if (POST_FORCADO) {
   candidatos = [lerPost(POST_FORCADO)];
+} else if (MODO_VALIDAR) {
+  candidatos = listarPosts().filter((p) => !publicados[p.id] && p.quando > agora);
 } else {
   candidatos = listarPosts().filter(
     (p) =>
@@ -201,7 +208,7 @@ const igUserId = process.env.IG_USER_ID || IG_USER_ID_PADRAO;
 
 let falhas = 0;
 for (const post of candidatos) {
-  if (publicados[post.id] && POST_FORCADO) {
+  if (publicados[post.id] && POST_FORCADO && !MODO_VALIDAR) {
     log(`✖ ${post.id} já foi publicado em ${publicados[post.id].publicadoEm}. Apague a entrada em publicados.json pra publicar de novo.`);
     falhas++;
     continue;
@@ -223,8 +230,12 @@ for (const post of candidatos) {
     continue;
   }
   try {
-    log(`→ Publicando ${post.id} (${post.tipo})...`);
+    log(`→ ${MODO_VALIDAR ? 'Validando' : 'Publicando'} ${post.id} (${post.tipo})...`);
     const r = await publicar(post, igUserId);
+    if (r.validado) {
+      log(`✔ ${post.id} aceito pela Meta (não publicado)`);
+      continue;
+    }
     publicados[post.id] = { ...r, tipo: post.tipo, publicadoEm: new Date().toISOString() };
     fs.writeFileSync(ARQ_PUBLICADOS, JSON.stringify(publicados, null, 2) + '\n');
     log(`✔ ${post.id} publicado ${r.permalink || `(media ${r.mediaId})`}`);
