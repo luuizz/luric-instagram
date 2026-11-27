@@ -1,0 +1,15 @@
+{
+  "name": "luric-instagram",
+  "private": true,
+  "type": "module",
+  "description": "Publica automaticamente os posts do Instagram da Luric.web via GitHub Actions + API oficial da Meta",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "preparar": "node scripts/preparar.mjs",
+    "verificar": "node scripts/publicar.mjs --verificar",
+    "publicar": "node scripts/publicar.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}

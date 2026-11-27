@@ -1,0 +1,61 @@
+name: Conferir token do Instagram
+
+# Toda segunda confere se o token ainda funciona. Se não funcionar, o check
+# fica vermelho e o GitHub te manda e-mail (antes de algum post falhar).
+#
+# Renovação automática (opcional): se o token expira, cadastre o secret
+# APP_SECRET (chave secreta do app na Meta) e o secret GH_PAT (token do GitHub
+# com "Secrets: read and write" neste repo). Aí o workflow troca o token por um
+# novo de longa duração e salva no IG_ACCESS_TOKEN.
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+env:
+  GRAPH: https://graph.facebook.com/${{ vars.GRAPH_VERSION || 'v21.0' }}
+  IG_USER_ID: ${{ vars.IG_USER_ID || '17841435258862236' }}
+  APP_ID: ${{ vars.APP_ID || '2086601232057574' }}
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Renovar (se configurado)
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [ -z "$APP_SECRET" ] || [ -z "$GH_TOKEN" ]; then
+            echo "Sem APP_SECRET/GH_PAT: pulando renovação." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          RESP=$(curl -sS -G "$GRAPH/oauth/access_token" \
+            --data-urlencode "grant_type=fb_exchange_token" \
+            --data-urlencode "client_id=$APP_ID" \
+            --data-urlencode "client_secret=$APP_SECRET" \
+            --data-urlencode "fb_exchange_token=$IG_ACCESS_TOKEN")
+          NOVO=$(echo "$RESP" | jq -r '.access_token // empty')
+          if [ -z "$NOVO" ]; then
+            echo "Falhou ao renovar: $(echo "$RESP" | jq -c '.error.message // .')" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "::add-mask::$NOVO"
+          gh secret set IG_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY" --body "$NOVO"
+          echo "Token renovado." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Conferir se o token funciona
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          RESP=$(curl -sS -G "$GRAPH/$IG_USER_ID" \
+            --data-urlencode "fields=username" \
+            --data-urlencode "access_token=$IG_ACCESS_TOKEN")
+          USER=$(echo "$RESP" | jq -r '.username // empty')
+          if [ -z "$USER" ]; then
+            echo "✖ Token não funciona: $(echo "$RESP" | jq -c '.error.message // .')" >> "$GITHUB_STEP_SUMMARY"
+            echo "Gere um token novo e atualize o secret IG_ACCESS_TOKEN." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "✔ Token ok, conectado em @$USER" >> "$GITHUB_STEP_SUMMARY"
