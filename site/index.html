@@ -111,7 +111,8 @@
   .lado { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
   .lado h2 { margin: 0; font-size: 26px; line-height: 1.1; letter-spacing: -.02em; text-transform: lowercase; }
   .meta { display: flex; flex-wrap: wrap; gap: 6px; }
-  .legenda { white-space: pre-wrap; font-size: 14px; line-height: 1.55; background: var(--bg); padding: 14px; margin: 0; font-family: inherit; }
+  .lado { overflow: hidden; }
+  .legenda { white-space: pre-wrap; font-size: 13px; line-height: 1.55; background: var(--bg); border: 1px solid var(--linha); padding: 12px 14px; margin: 0; font-family: inherit; flex: 1 1 auto; min-height: 120px; max-height: 420px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
   .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
   .btn { background: var(--amarelo); color: #000; border: 0; padding: 10px 16px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 14px; }
   .btn.sec { background: transparent; color: var(--texto); border: 1px solid var(--linha); font-weight: 500; }
@@ -120,6 +121,7 @@
   @media (max-width: 760px) {
     .modal { grid-template-columns: 1fr; height: auto; max-height: calc(100vh - 48px); overflow-y: auto; }
     .lado { overflow: visible; }
+    .legenda { flex: none; max-height: 260px; }
     .midia video { max-height: 70vh; }
     .slide img { max-height: 70vh; }
     .seta { width: 34px; height: 34px; font-size: 18px; background: #FFFFFFB3; }
