@@ -84,3 +84,9 @@ Depois, **Actions > Publicar no Instagram > Run workflow** com **simular** marca
 ## Atenção com o Buffer
 
 Se um post estiver aqui **e** agendado no Buffer, ele sai duas vezes. Os posts de 01/12 a 21/12 estão agendados no Buffer e por isso **não** estão aqui. Daqui pra frente, cada post fica em um lugar só.
+
+## Painel
+
+A fila fica visível em **https://luuizz.github.io/luric-instagram/** (calendário com prévia de cada post, legenda e status).
+Pra ligar (uma vez só): **Settings > Pages > Build and deployment > Source: GitHub Actions**. Depois rode **Actions > Painel (GitHub Pages) > Run workflow**.
+O painel se atualiza sozinho quando entram posts novos, e o status "publicado" é lido ao vivo.

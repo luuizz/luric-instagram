@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fila de posts · Luric.web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amarelo: #FFD300;
+    --preto: #000;
+    --offwhite: #F2F2F2;
+    --grafite: #454545;
+    --branco: #fff;
+    --linha: #D9D9D9;
+    --suave: #6B6B6B;
+    --ok: #1F7A3A;
+    --erro: #C62828;
+    --bg: var(--offwhite);
+    --card: var(--branco);
+    --texto: var(--preto);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0B0B0B; --card: #1A1A1A; --texto: #fff; --linha: #2C2C2C; --suave: #9A9A9A; --ok: #5BD08A; --erro: #FF7A7A;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--texto); font: 400 15px/1.5 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+  .marca { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--suave); margin: 0 0 12px; }
+  h1 { font-size: clamp(40px, 7vw, 88px); line-height: .92; letter-spacing: -.035em; font-weight: 700; margin: 0; text-transform: lowercase; }
+  h1 span { color: var(--suave); opacity: .55; }
+
+  .proximo { background: var(--preto); color: #fff; padding: 18px 22px; min-width: 280px; display: flex; gap: 16px; align-items: center; cursor: pointer; border: 0; text-align: left; }
+  .proximo .rot { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--amarelo); }
+  .proximo strong { display: block; font-size: 20px; line-height: 1.2; letter-spacing: -.01em; }
+  .proximo small { color: #BDBDBD; }
+  .proximo img, .proximo .ph { width: 56px; height: 70px; object-fit: cover; flex: none; background: #222; }
+
+  .resumo { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--card); border: 1px solid var(--linha); font-size: 13px; }
+  .chip b { font-weight: 700; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .d-fila { background: var(--amarelo); outline: 1px solid #00000033; }
+  .d-ok { background: var(--ok); }
+  .d-erro { background: var(--erro); }
+  .d-pausa { background: var(--suave); }
+
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .mes { font-size: 28px; font-weight: 700; letter-spacing: -.02em; text-transform: lowercase; margin: 0; }
+  .nav { display: flex; gap: 6px; }
+  .nav button { background: var(--card); border: 1px solid var(--linha); width: 40px; height: 40px; cursor: pointer; font-size: 18px; }
+  .nav button:hover { background: var(--amarelo); color: #000; border-color: var(--amarelo); }
+  .nav button.hoje { width: auto; padding: 0 14px; font-size: 13px; }
+
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--linha); border: 1px solid var(--linha); }
+  .cal .dow { background: var(--bg); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--suave); padding: 8px 10px; }
+  .dia { background: var(--card); min-height: 150px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .dia.fora { background: var(--bg); }
+  .dia.fora .n { opacity: .35; }
+  .dia .n { font-size: 13px; font-weight: 500; color: var(--suave); }
+  .dia.hoje .n { background: var(--amarelo); color: #000; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; font-weight: 700; }
+
+  .post { display: flex; gap: 8px; align-items: stretch; background: none; border: 1px solid var(--linha); padding: 6px; cursor: pointer; text-align: left; width: 100%; }
+  .post:hover { border-color: var(--texto); }
+  .post .thumb { width: 44px; height: 55px; object-fit: cover; flex: none; background: #000; display: block; }
+  .post .info { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+  .post .tipo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+  .post .hora { font-size: 12px; color: var(--suave); }
+  .status { font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
+  .s-ok { color: var(--ok); } .s-erro { color: var(--erro); } .s-pausa { color: var(--suave); }
+
+  .lista { display: none; }
+  @media (max-width: 760px) {
+    .wrap { padding: 24px 16px 64px; }
+    .cal { display: none; }
+    .lista { display: flex; flex-direction: column; gap: 10px; }
+    .lista .grupo { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin: 14px 0 0; }
+    .lista .post { background: var(--card); padding: 10px; gap: 12px; }
+    .lista .post .thumb { width: 64px; height: 80px; }
+    .proximo { width: 100%; min-width: 0; }
+    .mes { font-size: 22px; }
+  }
+
+  dialog { border: 0; padding: 0; width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--card); color: var(--texto); }
+  dialog::backdrop { background: #000000B3; }
+  .modal { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-height: calc(100vh - 48px); }
+  .midia { background: #000; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: flex-start; }
+  .midia img, .midia video { width: 100%; flex: none; scroll-snap-align: start; display: block; aspect-ratio: 4 / 5; object-fit: contain; background: #000; }
+  .midia video { aspect-ratio: 9 / 16; max-height: calc(100vh - 48px); }
+  .lado { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  .lado h2 { margin: 0; font-size: 26px; line-height: 1.1; letter-spacing: -.02em; text-transform: lowercase; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; }
+  .legenda { white-space: pre-wrap; font-size: 14px; line-height: 1.55; background: var(--bg); padding: 14px; margin: 0; font-family: inherit; }
+  .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { background: var(--amarelo); color: #000; border: 0; padding: 10px 16px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 14px; }
+  .btn.sec { background: transparent; color: var(--texto); border: 1px solid var(--linha); font-weight: 500; }
+  .contador { font-size: 12px; color: var(--suave); }
+  .fechar { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border: 0; background: var(--preto); color: #fff; cursor: pointer; font-size: 18px; z-index: 2; }
+  @media (max-width: 760px) {
+    .modal { grid-template-columns: 1fr; overflow-y: auto; }
+    .midia video { max-height: 70vh; }
+  }
+  .aviso { padding: 16px; background: var(--card); border: 1px solid var(--linha); }
+  footer { margin-top: 32px; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="marca">luric.web · instagram</p>
+      <h1>fila de posts <span>do robô.</span></h1>
+    </div>
+    <button class="proximo" id="proximo" hidden></button>
+  </header>
+
+  <div class="resumo" id="resumo"></div>
+
+  <div class="barra">
+    <h2 class="mes" id="mes"></h2>
+    <div class="nav">
+      <button id="ant" aria-label="Mês anterior">‹</button>
+      <button id="hoje" class="hoje">hoje</button>
+      <button id="prox" aria-label="Próximo mês">›</button>
+    </div>
+  </div>
+
+  <div class="cal" id="cal"></div>
+  <div class="lista" id="lista"></div>
+
+  <footer id="rodape"></footer>
+</div>
+
+<dialog id="dlg"></dialog>
+
+<script>
+(() => {
+  const REPO = 'luuizz/luric-instagram';
+  const TZ = 'America/Sao_Paulo';
+  const TIPOS = { carrossel: 'Carrossel', reel: 'Reel', estatico: 'Estático' };
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const hh = (h) => h.replace(/^0/, '').replace(':00', 'h');
+  const DOW = ['seg','ter','qua','qui','sex','sáb','dom'];
+
+  let posts = [];
+  let publicados = {};
+  let cursor; // {y, m}
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function hojeSP() {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    return p; // AAAA-MM-DD
+  }
+
+  function status(p) {
+    const pub = publicados[p.id];
+    if (pub) return { k: 'ok', txt: 'publicado', link: pub.permalink };
+    if (p.erros && p.erros.length) return { k: 'erro', txt: 'com problema' };
+    if (p.pausado) return { k: 'pausa', txt: 'pausado' };
+    const atraso = Date.now() - new Date(p.quando).getTime();
+    if (atraso > 90 * 60 * 1000) return { k: 'erro', txt: 'não saiu' };
+    if (atraso > 0) return { k: 'fila', txt: 'publicando…' };
+    return { k: 'fila', txt: 'na fila' };
+  }
+
+  function thumbHtml(p, cls = 'thumb') {
+    if (p.capa) return `<img class="${cls}" src="${esc(p.capa)}" alt="" loading="lazy">`;
+    if (p.tipo === 'reel' && p.midias[0]) return `<video class="${cls}" src="${esc(p.midias[0])}#t=0.5" muted preload="metadata" playsinline></video>`;
+    return `<span class="${cls}"></span>`;
+  }
+
+  function cardHtml(p) {
+    const s = status(p);
+    const dot = { ok: 'd-ok', erro: 'd-erro', pausa: 'd-pausa', fila: 'd-fila' }[s.k];
+    return `<button class="post" data-id="${esc(p.id)}">
+      ${thumbHtml(p)}
+      <span class="info">
+        <span class="tipo">${TIPOS[p.tipo] || '?'}</span>
+        <span class="hora">${esc(hh(p.hora))}</span>
+        <span class="status s-${s.k}"><i class="dot ${dot}"></i>${s.txt}</span>
+      </span>
+    </button>`;
+  }
+
+  function renderResumo() {
+    const c = { fila: 0, ok: 0, erro: 0, pausa: 0 };
+    posts.forEach((p) => c[status(p).k]++);
+    $('resumo').innerHTML = [
+      ['d-fila', c.fila, 'na fila'],
+      ['d-ok', c.ok, 'publicados'],
+      c.erro ? ['d-erro', c.erro, 'com problema'] : null,
+      c.pausa ? ['d-pausa', c.pausa, 'pausados'] : null,
+    ].filter(Boolean).map(([d, n, t]) => `<span class="chip"><i class="dot ${d}"></i><b>${n}</b> ${t}</span>`).join('');
+
+    const prox = posts.find((p) => status(p).k === 'fila' && new Date(p.quando) > new Date());
+    const el = $('proximo');
+    if (!prox) { el.hidden = true; return; }
+    const dias = Math.round((new Date(prox.data + 'T00:00:00-03:00') - new Date(hojeSP() + 'T00:00:00-03:00')) / 86400000);
+    const quando = dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : `em ${dias} dias`;
+    const [y, m, d] = prox.data.split('-');
+    el.hidden = false;
+    el.dataset.id = prox.id;
+    el.innerHTML = `${prox.capa ? `<img src="${esc(prox.capa)}" alt="">` : '<span class="ph"></span>'}
+      <span><span class="rot">próximo post · ${quando}</span>
+      <strong>${TIPOS[prox.tipo]} · ${d}/${m}</strong>
+      <small>às ${esc(hh(prox.hora))}</small></span>`;
+  }
+
+  function renderMes() {
+    const { y, m } = cursor;
+    $('mes').textContent = `${MESES[m]} ${y}`;
+    const primeiro = new Date(Date.UTC(y, m, 1));
+    const offset = (primeiro.getUTCDay() + 6) % 7; // segunda = 0
+    const inicio = new Date(Date.UTC(y, m, 1 - offset));
+    const hoje = hojeSP();
+    const porDia = {};
+    posts.forEach((p) => (porDia[p.data] ||= []).push(p));
+
+    let html = DOW.map((d) => `<div class="dow">${d}</div>`).join('');
+    const semanas = Math.ceil((offset + new Date(Date.UTC(y, m + 1, 0)).getUTCDate()) / 7);
+    for (let i = 0; i < semanas * 7; i++) {
+      const dt = new Date(inicio.getTime() + i * 86400000);
+      const iso = dt.toISOString().slice(0, 10);
+      const fora = dt.getUTCMonth() !== m;
+      html += `<div class="dia${fora ? ' fora' : ''}${iso === hoje ? ' hoje' : ''}">
+        <span class="n">${dt.getUTCDate()}</span>
+        ${(porDia[iso] || []).map(cardHtml).join('')}
+      </div>`;
+    }
+    $('cal').innerHTML = html;
+
+    // Lista (celular): mês atual do cursor
+    const doMes = posts.filter((p) => p.data.startsWith(`${y}-${String(m + 1).padStart(2, '0')}`));
+    $('lista').innerHTML = doMes.length
+      ? doMes.map((p) => {
+          const [, mm, dd] = p.data.split('-');
+          const dow = DOW[(new Date(p.data + 'T12:00:00Z').getUTCDay() + 6) % 7];
+          return `<p class="grupo">${dow} · ${dd}/${mm}</p>${cardHtml(p)}`;
+        }).join('')
+      : '<p class="aviso">Nenhum post neste mês.</p>';
+  }
+
+  function abrir(id) {
+    const p = posts.find((x) => x.id === id);
+    if (!p) return;
+    const s = status(p);
+    const [y, m, d] = p.data.split('-');
+    const midia = p.tipo === 'reel'
+      ? `<video src="${esc(p.midias[0])}" controls playsinline preload="metadata"></video>`
+      : p.midias.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('');
+    const dlg = $('dlg');
+    dlg.innerHTML = `<button class="fechar" aria-label="Fechar">✕</button>
+      <div class="modal">
+        <div class="midia">${midia}</div>
+        <div class="lado">
+          <p class="marca" style="margin:0">${esc(p.id)}</p>
+          <h2>${TIPOS[p.tipo]} · ${d}/${m}/${y} às ${esc(hh(p.hora))}</h2>
+          <div class="meta">
+            <span class="chip status s-${s.k}"><i class="dot ${{ ok: 'd-ok', erro: 'd-erro', pausa: 'd-pausa', fila: 'd-fila' }[s.k]}"></i>${s.txt}</span>
+            ${p.midias.length > 1 ? `<span class="chip">${p.midias.length} slides · arraste pro lado</span>` : ''}
+            <span class="chip">${[...p.legenda].length} caracteres</span>
+          </div>
+          ${p.erros && p.erros.length ? `<p class="aviso s-erro">${p.erros.map(esc).join('<br>')}</p>` : ''}
+          <div class="acoes">
+            ${s.link ? `<a class="btn" href="${esc(s.link)}" target="_blank" rel="noopener">ver no Instagram</a>` : ''}
+            <button class="btn sec" id="copiar">copiar legenda</button>
+            <a class="btn sec" href="https://github.com/${REPO}/tree/main/posts/${encodeURIComponent(p.id)}" target="_blank" rel="noopener">abrir pasta</a>
+          </div>
+          <pre class="legenda">${esc(p.legenda)}</pre>
+        </div>
+      </div>`;
+    dlg.querySelector('.fechar').onclick = () => dlg.close();
+    dlg.querySelector('#copiar').onclick = async (e) => {
+      try { await navigator.clipboard.writeText(p.legenda); e.target.textContent = 'copiada ✓'; } catch { e.target.textContent = 'não deu pra copiar'; }
+    };
+    dlg.showModal();
+  }
+
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-id]');
+    if (b) abrir(b.dataset.id);
+    if (e.target === $('dlg')) $('dlg').close();
+  });
+  $('dlg').addEventListener('close', () => { $('dlg').querySelectorAll('video').forEach((v) => v.pause()); });
+
+  function mover(delta) {
+    const d = new Date(Date.UTC(cursor.y, cursor.m + delta, 1));
+    cursor = { y: d.getUTCFullYear(), m: d.getUTCMonth() };
+    try { localStorage.setItem('fila-mes', JSON.stringify(cursor)); } catch {}
+    renderMes();
+  }
+  $('ant').onclick = () => mover(-1);
+  $('prox').onclick = () => mover(1);
+  $('hoje').onclick = () => { const [y, m] = hojeSP().split('-').map(Number); cursor = { y, m: m - 1 }; mover(0); };
+
+  async function carregarPublicados() {
+    // Ao vivo do repositório (atualiza minutos depois de cada post); se falhar, usa a cópia do site.
+    for (const url of [`https://raw.githubusercontent.com/${REPO}/main/publicados.json?t=${Date.now()}`, 'publicados.json']) {
+      try { const r = await fetch(url, { cache: 'no-store' }); if (r.ok) return await r.json(); } catch {}
+    }
+    return {};
+  }
+
+  async function iniciar() {
+    try {
+      const [fila, pub] = await Promise.all([fetch('fila.json', { cache: 'no-store' }).then((r) => r.json()), carregarPublicados()]);
+      posts = fila.posts;
+      publicados = pub;
+      $('rodape').innerHTML = `Atualizado com o repositório em ${new Date(fila.geradoEm).toLocaleString('pt-BR', { timeZone: TZ })}. O status de publicado é lido ao vivo. · <a href="https://github.com/${REPO}/actions" target="_blank" rel="noopener" style="color:inherit">ver execuções do robô</a>`;
+    } catch (e) {
+      $('cal').outerHTML = `<p class="aviso">Não consegui carregar a fila (${esc(e.message)}).</p>`;
+      return;
+    }
+    let salvo = null;
+    try { salvo = JSON.parse(localStorage.getItem('fila-mes')); } catch {}
+    if (salvo && Number.isInteger(salvo.y)) cursor = salvo;
+    else {
+      // Começa no mês de hoje, ou no mês do próximo post se hoje não tiver nada
+      const prox = posts.find((p) => !publicados[p.id] && new Date(p.quando) > new Date());
+      const ref = (prox ? prox.data : hojeSP()).split('-').map(Number);
+      cursor = { y: ref[0], m: ref[1] - 1 };
+    }
+    renderResumo();
+    renderMes();
+  }
+
+  iniciar();
+  setInterval(async () => { publicados = await carregarPublicados(); renderResumo(); renderMes(); }, 5 * 60 * 1000);
+})();
+</script>
+</body>
+</html>

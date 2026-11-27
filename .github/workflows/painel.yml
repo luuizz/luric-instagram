@@ -1,0 +1,49 @@
+name: Painel (GitHub Pages)
+
+# Publica o painel com a fila de posts em https://<usuario>.github.io/<repo>/
+# O status (publicado ou não) é lido ao vivo do publicados.json, então só
+# precisa rodar quando entram ou mudam posts.
+on:
+  # Roda depois do "Preparar e verificar posts" (que converte os PNG), assim
+  # o painel já pega os JPEG.
+  workflow_run:
+    workflows: ['Preparar e verificar posts']
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ['site/**', 'scripts/**', '.github/workflows/painel.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Montar site
+        run: |
+          node scripts/fila.mjs
+          mkdir -p _site
+          cp site/index.html site/fila.json _site/
+          cp -r posts _site/posts
+          cp publicados.json _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
