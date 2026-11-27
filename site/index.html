@@ -92,10 +92,22 @@
 
   dialog { border: 0; padding: 0; width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--card); color: var(--texto); }
   dialog::backdrop { background: #000000B3; }
-  .modal { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-height: calc(100vh - 48px); }
-  .midia { background: #000; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: flex-start; }
-  .midia img, .midia video { width: 100%; flex: none; scroll-snap-align: start; display: block; aspect-ratio: 4 / 5; object-fit: contain; background: #000; }
-  .midia video { aspect-ratio: 9 / 16; max-height: calc(100vh - 48px); }
+  .modal { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: min(calc(100vh - 48px), 760px); }
+  .modal > * { min-height: 0; }
+  .midia { background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
+  .trilho { display: flex; flex: 0 0 100%; width: 100%; min-width: 0; transition: transform .35s ease; }
+  .slide { min-width: 0; }
+  .slide { flex: 0 0 100%; display: flex; align-items: center; justify-content: center; }
+  .slide img { display: block; width: 100%; height: auto; max-height: min(calc(100vh - 48px), 760px); aspect-ratio: 4 / 5; object-fit: contain; }
+  .midia video { display: block; width: 100%; max-height: calc(100vh - 48px); aspect-ratio: 9 / 16; object-fit: contain; background: #000; }
+  .seta { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: #FFFFFFE6; color: #000; font-size: 22px; line-height: 1; cursor: pointer; display: grid; place-items: center; box-shadow: 0 2px 10px #0006; z-index: 1; }
+  .seta:hover { background: var(--amarelo); }
+  .seta[disabled] { opacity: 0; pointer-events: none; }
+  .seta.esq { left: 12px; } .seta.dir { right: 12px; }
+  .pontos { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 1; }
+  .pontos button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: #FFFFFF66; cursor: pointer; }
+  .pontos button.ativo { background: var(--amarelo); width: 20px; border-radius: 4px; }
+  .num { position: absolute; top: 12px; left: 12px; background: #000000B3; color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 12px; z-index: 1; }
   .lado { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
   .lado h2 { margin: 0; font-size: 26px; line-height: 1.1; letter-spacing: -.02em; text-transform: lowercase; }
   .meta { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -106,8 +118,12 @@
   .contador { font-size: 12px; color: var(--suave); }
   .fechar { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border: 0; background: var(--preto); color: #fff; cursor: pointer; font-size: 18px; z-index: 2; }
   @media (max-width: 760px) {
-    .modal { grid-template-columns: 1fr; overflow-y: auto; }
+    .modal { grid-template-columns: 1fr; height: auto; max-height: calc(100vh - 48px); overflow-y: auto; }
+    .lado { overflow: visible; }
     .midia video { max-height: 70vh; }
+    .slide img { max-height: 70vh; }
+    .seta { width: 34px; height: 34px; font-size: 18px; background: #FFFFFFB3; }
+    .seta.esq { left: 6px; } .seta.dir { right: 6px; }
   }
   .aviso { padding: 16px; background: var(--card); border: 1px solid var(--linha); }
   footer { margin-top: 32px; font-size: 12px; color: var(--suave); }
@@ -256,9 +272,14 @@
     if (!p) return;
     const s = status(p);
     const [y, m, d] = p.data.split('-');
+    const varios = p.midias.length > 1;
     const midia = p.tipo === 'reel'
       ? `<video src="${esc(p.midias[0])}" controls playsinline preload="metadata"></video>`
-      : p.midias.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('');
+      : `<div class="trilho">${p.midias.map((u, i) => `<div class="slide"><img src="${esc(u)}" alt="Slide ${i + 1}"></div>`).join('')}</div>
+        ${varios ? `<span class="num">1 / ${p.midias.length}</span>
+        <button class="seta esq" aria-label="Slide anterior">‹</button>
+        <button class="seta dir" aria-label="Próximo slide">›</button>
+        <div class="pontos">${p.midias.map((_, i) => `<button aria-label="Slide ${i + 1}"></button>`).join('')}</div>` : ''}`;
     const dlg = $('dlg');
     dlg.innerHTML = `<button class="fechar" aria-label="Fechar">✕</button>
       <div class="modal">
@@ -268,7 +289,7 @@
           <h2>${TIPOS[p.tipo]} · ${d}/${m}/${y} às ${esc(hh(p.hora))}</h2>
           <div class="meta">
             <span class="chip status s-${s.k}"><i class="dot ${{ ok: 'd-ok', erro: 'd-erro', pausa: 'd-pausa', fila: 'd-fila' }[s.k]}"></i>${s.txt}</span>
-            ${p.midias.length > 1 ? `<span class="chip">${p.midias.length} slides · arraste pro lado</span>` : ''}
+            ${p.midias.length > 1 ? `<span class="chip">${p.midias.length} slides · use as setas</span>` : ''}
             <span class="chip">${[...p.legenda].length} caracteres</span>
           </div>
           ${p.erros && p.erros.length ? `<p class="aviso s-erro">${p.erros.map(esc).join('<br>')}</p>` : ''}
@@ -281,11 +302,51 @@
         </div>
       </div>`;
     dlg.querySelector('.fechar').onclick = () => dlg.close();
+    configurarCarrossel(dlg);
     dlg.querySelector('#copiar').onclick = async (e) => {
       try { await navigator.clipboard.writeText(p.legenda); e.target.textContent = 'copiada ✓'; } catch { e.target.textContent = 'não deu pra copiar'; }
     };
     dlg.showModal();
   }
+
+  let irPara = null;
+  function configurarCarrossel(dlg) {
+    irPara = null;
+    const trilho = dlg.querySelector('.trilho');
+    const total = dlg.querySelectorAll('.slide').length;
+    if (!trilho || total < 2) return;
+    const esq = dlg.querySelector('.seta.esq'), dir = dlg.querySelector('.seta.dir');
+    const pontos = [...dlg.querySelectorAll('.pontos button')];
+    const num = dlg.querySelector('.num');
+    let atual = 0;
+    irPara = (i) => {
+      atual = Math.max(0, Math.min(total - 1, i));
+      trilho.style.transform = `translateX(-${atual * 100}%)`;
+      esq.disabled = atual === 0;
+      dir.disabled = atual === total - 1;
+      pontos.forEach((b, j) => b.classList.toggle('ativo', j === atual));
+      num.textContent = `${atual + 1} / ${total}`;
+    };
+    esq.onclick = (e) => { e.stopPropagation(); irPara(atual - 1); };
+    dir.onclick = (e) => { e.stopPropagation(); irPara(atual + 1); };
+    pontos.forEach((b, j) => (b.onclick = (e) => { e.stopPropagation(); irPara(j); }));
+    // Arrastar no celular
+    let x0 = null;
+    trilho.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+    trilho.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 40) irPara(atual + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+    irPara(0);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!$('dlg').open || !irPara) return;
+    const atual = [...$('dlg').querySelectorAll('.pontos button')].findIndex((b) => b.classList.contains('ativo'));
+    if (e.key === 'ArrowRight') irPara(atual + 1);
+    if (e.key === 'ArrowLeft') irPara(atual - 1);
+  });
 
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-id]');
