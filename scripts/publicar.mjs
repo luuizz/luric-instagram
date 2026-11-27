@@ -98,25 +98,41 @@ async function aguardarContainer(id, rotulo) {
   throw new Error(`${rotulo}: demorou mais de 15 minutos pra processar`);
 }
 
-function urlPublica(post, arquivo) {
+/** Endereços públicos possíveis pra um arquivo, em ordem de preferência. */
+function urlsCandidatas(post, arquivo) {
   const caminho = ['posts', post.id, ...arquivo.split('/')].map(encodeURIComponent).join('/');
-  if (process.env.MEDIA_BASE_URL) return `${process.env.MEDIA_BASE_URL.replace(/\/$/, '')}/${caminho}`;
+  if (process.env.MEDIA_BASE_URL) return [`${process.env.MEDIA_BASE_URL.replace(/\/$/, '')}/${caminho}`];
   const repo = process.env.GITHUB_REPOSITORY;
   const ref = process.env.GITHUB_SHA || 'main';
   if (!repo) throw new Error('Defina MEDIA_BASE_URL ou rode dentro do GitHub Actions (GITHUB_REPOSITORY)');
-  return `https://cdn.jsdelivr.net/gh/${repo}@${ref}/${caminho}`;
+  return [
+    `https://cdn.jsdelivr.net/gh/${repo}@${ref}/${caminho}`,
+    `https://raw.githubusercontent.com/${repo}/${ref}/${caminho}`,
+  ];
 }
 
-/** Faz uma requisição antes pra CDN já ter o arquivo em cache quando a Meta pedir. */
-async function aquecer(url) {
-  const r = await fetch(url, { method: 'GET' });
-  if (!r.ok) throw new Error(`Mídia não está pública: ${url} (HTTP ${r.status})`);
-  await r.arrayBuffer();
+/**
+ * Acha um endereço público que funciona pro arquivo (e já deixa a CDN com ele
+ * em cache pra quando a Meta pedir).
+ */
+async function urlPublica(post, arquivo) {
+  const falhas = [];
+  for (const url of urlsCandidatas(post, arquivo)) {
+    try {
+      const r = await fetch(url);
+      await r.arrayBuffer();
+      if (r.ok) return url;
+      falhas.push(`${url} (HTTP ${r.status})`);
+    } catch (e) {
+      falhas.push(`${url} (${e.message})`);
+    }
+  }
+  throw new Error(`Mídia não está pública: ${falhas.join(' | ')}`);
 }
 
 async function publicar(post, igUserId) {
-  const urls = post.midias.map((m) => urlPublica(post, m));
-  for (const u of urls) await aquecer(u);
+  const urls = [];
+  for (const m of post.midias) urls.push(await urlPublica(post, m));
 
   let containerId;
   if (post.tipo === 'estatico') {
@@ -138,9 +154,7 @@ async function publicar(post, igUserId) {
   } else if (post.tipo === 'reel') {
     const params = { media_type: 'REELS', video_url: urls[0], caption: post.legenda, share_to_feed: 'true' };
     if (post.capa) {
-      const capa = urlPublica(post, post.capa);
-      await aquecer(capa);
-      params.cover_url = capa;
+      params.cover_url = await urlPublica(post, post.capa);
     }
     ({ id: containerId } = await graph('POST', `/${igUserId}/media`, params));
     await aguardarContainer(containerId, 'vídeo');
@@ -198,7 +212,14 @@ for (const post of candidatos) {
     continue;
   }
   if (MODO_SIMULAR) {
-    log(`(simulação) publicaria ${post.id} · ${post.tipo} · ${post.midias.join(', ')}`);
+    try {
+      const urls = [];
+      for (const m of post.midias) urls.push(await urlPublica(post, m));
+      log(`(simulação) publicaria ${post.id} · ${post.tipo} · mídias ok em ${new URL(urls[0]).host}`);
+    } catch (e) {
+      falhas++;
+      log(`✖ (simulação) ${post.id}: ${e.message}`);
+    }
     continue;
   }
   try {
